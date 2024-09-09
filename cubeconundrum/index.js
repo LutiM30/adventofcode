@@ -1,45 +1,47 @@
 fetch('input.txt')
   .then((res) => res.text())
   .then((text) => {
-    const colorsAndAmount = { red: 12, blue: 14, green: 13 };
+    const MAX_CUBES = { red: 12, blue: 14, green: 13 };
     const games = text.split('\r\n');
     const gamesObj = {};
     const gamesExtracted = games.map(
       (game, index) => game.split(`Game ${index + 1}: `)[1]
     );
+
     gamesExtracted?.forEach((game, index) => {
-      const obj = {};
-      const truthness = {};
+      let colorsArray = game.split(';')?.map((info) => info?.split(', '));
 
-      const colorArray = game
-        .split(';')
-        ?.map((info) => info?.split(', '))
-        ?.flat();
-      colorArray.forEach((color) => {
-        let containsC = '';
-        Object.keys(colorsAndAmount).forEach((c) => {
-          color?.includes(c) ? (containsC = c) : '';
-          truthness[c] = false;
+      colorsArray = colorsArray.map((colorArr) => {
+        const newColorObject = {};
+        colorArr.map((color) => {
+          let containsC = '';
+          Object.keys(MAX_CUBES).forEach((c) =>
+            color?.includes(c) ? (containsC = c) : ''
+          );
+
+          const num = Number(color.split(containsC)[0]?.trim());
+
+          containsC in newColorObject
+            ? (newColorObject[containsC] = newColorObject[containsC] + num)
+            : (newColorObject[containsC] = num);
         });
-
-        const num = Number(color.split(containsC)[0]?.trim());
-
-        containsC in obj
-          ? (obj[containsC] = obj[containsC] + num)
-          : (obj[containsC] = num);
+        return newColorObject;
       });
 
-      for (const [gKey, gValue] of Object.entries(obj)) {
-        for (const [cKey, cValue] of Object.entries(colorsAndAmount)) {
-          gKey === cKey && gValue <= cValue ? (truthness[cKey] = true) : false;
-        }
-      }
-
-      Object.values(truthness)?.every((val) => val === true)
-        ? (gamesObj[index + 1] = obj)
-        : '';
+      gamesObj[index + 1] = colorsArray;
     });
-    console.log({ gamesObj });
+
+    for (const [gameID, gamesArr] of Object.entries(gamesObj)) {
+      gamesArr.forEach((gameIteration) => {
+        for (const [color, numberOTimes] of Object.entries(gameIteration)) {
+          for (const [cKey, cValue] of Object.entries(MAX_CUBES)) {
+            color === cKey && numberOTimes > cValue
+              ? delete gamesObj[gameID]
+              : false;
+          }
+        }
+      });
+    }
 
     const theFinalNumber = Object.keys(gamesObj).reduce(
       (partialSum, a) => partialSum + Number(a?.trim()),
